@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { signIn } from "next-auth/react";
 import AuthInput from "./AuthInput";
 
 interface Props {
@@ -24,56 +25,58 @@ const AuthForm: React.FC<Props> = ({ variant }) => {
     setLoading(true);
     setMessage("");
 
-    const endpoint =
-      variant === "login"
-        ? "/api/login"
-        : "/api/register";
-
-    const body =
-      variant === "login"
-        ? { email, password }
-        : { name, email, password };
-
     try {
 
-      const res = await fetch(endpoint, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(body),
-      });
+      // SIGNUP (keep your existing API)
+      if (variant === "signup") {
 
-      const data = await res.json();
+        const res = await fetch("/api/register", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            name,
+            email,
+            password,
+          }),
+        });
 
-      if (!res.ok) {
-        setMessage(data);
+        const data = await res.json();
+
+        if (!res.ok) {
+          setMessage(data);
+          setLoading(false);
+          return;
+        }
+
+        setMessage("Signup successful! Please login.");
         setLoading(false);
         return;
       }
 
-      if (variant === "signup") {
+      // LOGIN using NextAuth
+      const result = await signIn("credentials", {
+        email,
+        password,
+        redirect: false,
+      });
 
-        setMessage("Signup successful! Please login.");
-
-      } else {
-
-        setMessage("Login successful!");
-
-        // Save user session
-        localStorage.setItem(
-          "user",
-          JSON.stringify(data.user)
-        );
-
-        // Redirect to profiles
-        setTimeout(() => {
-          router.push("/profiles");
-        }, 1000);
+      if (result?.error) {
+        setMessage("Invalid credentials");
+        setLoading(false);
+        return;
       }
 
-    } catch {
-      setMessage("Error occurred");
+      setMessage("Login successful!");
+
+      // redirect after login
+      router.push("/profiles");
+
+    } catch (error) {
+
+      setMessage("Something went wrong");
+
     }
 
     setLoading(false);

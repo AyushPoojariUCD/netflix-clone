@@ -15,6 +15,9 @@ const AuthInput: React.FC<Props> = ({
 }) => {
   return (
     <input
+      suppressHydrationWarning
+      autoComplete="off"
+      spellCheck="false"
       type={type}
       placeholder={placeholder}
       value={value}
